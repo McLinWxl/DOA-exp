@@ -40,6 +40,7 @@ if __name__ == "__main__":
     # time =
     f_path = "../../../328Data/5666训练集/test_20240329_154730-RealData(-5_0)/2024-03-29 15-47-30.tdms"
     data = load_data(f_path)
+    a = 1
     # save data to npy file
-    # np.save("ULA_0.03/S5666/-5_10.npy", data)
+    # np.save("ULA_0.03/Ball/H_15_F_-15.npy", data)
 
