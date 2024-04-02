@@ -12,13 +12,13 @@ from DOA.functions import Manifold_dictionary
 import matplotlib.pyplot as plt
 import torch
 
-model_name = 'MVDR'
-label = [-20, 10]
+model_name = 'AMI'
+label = [-5, 0]
 num_antennas = 8
 num_snps = 256
-data = np.load('ULA_0.03/S5666/-20_10.npy')
+data = np.load('ULA_0.03/S5666/-5_0.npy')
 data_snapshots_generator = GenSnapshot(data, 51200, 5666, 8192, target_fre_width=15, is_half_overlapping=True)
-data_snapshots = data_snapshots_generator.get_snapshots(num_antennas=num_antennas, num_snapshots=num_snps)
+data_snapshots = data_snapshots_generator.get_snapshots(num_antennas=num_antennas, num_snapshots=num_snps, stride=20)
 covariance_matrix = np.matmul(data_snapshots, data_snapshots.conj().transpose(0, 2, 1)) / data_snapshots.shape[2]
 meshes = np.linspace(-60, 60, 121)
 
@@ -59,7 +59,7 @@ for i in range(sample_length):
             plt.title('ISTA Spectrum')
             output_matrix[i] = spect.reshape(-1)
         case 'AMI':
-            model_path = '../Test/AMI-LF10.pth'
+            model_path = '../Test/AMI_FT_20.pth'
             dictionary_torch = torch.from_numpy(dictionary).to(torch.complex64)
             covariance_vector_torch = torch.from_numpy(covariance_vector_denoised).to(torch.complex64)
             AMI = model.AMI_LISTA(dictionary=dictionary_torch)

@@ -26,20 +26,20 @@ class GenSnapshot:
         :param is_half_overlapping: Whether the overlap is half
         :return: Frequency domain snapshots
         """
-        self.data = data
+        self.data = data[:, sample_frequency*10:-sample_frequency*10]
         self.sample_frequency = sample_frequency
         self.target_frequency = target_frequency
         self.length_window = length_window
         self.target_fre_width = kwargs.get('target_fre_width', 10)
         self.is_half_overlapping = kwargs.get('is_half_overlapping', True)
 
-    def get_snapshots(self, num_antennas, num_snapshots) -> np.ndarray:
+    def get_snapshots(self, num_antennas: int, num_snapshots: int, stride: int) -> np.ndarray:
         data_snp = self.gen_snapshot()
-        num_samples = (data_snp.shape[1] // (num_snapshots // 2) - 1)
+        num_samples = (data_snp.shape[1] - num_snapshots) // stride + 1
         data_snp = data_snp[:, :num_samples * num_snapshots]
         data_snp_sliced = np.zeros((num_samples, num_antennas, num_snapshots), dtype=np.complex64)
         for i in range(num_samples):
-            data_snp_window = data_snp[(16-num_antennas)//2: (16+num_antennas)//2, i * num_snapshots // 2: i * num_snapshots // 2 + num_snapshots]
+            data_snp_window = data_snp[(16-num_antennas)//2: (16+num_antennas)//2, i * stride:i * stride + num_snapshots]
             data_snp_sliced[i] = norm_(data_snp_window)
         return data_snp_sliced
 

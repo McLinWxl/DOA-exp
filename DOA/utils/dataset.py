@@ -13,34 +13,67 @@ import torch
 import os
 
 
-def read_data(file_path) -> dict:
-    files = os.listdir(file_path)
-    data = {}
-    for file in files:
-        label = list(map(int, file.split('.')[0].split('_')))
-        file_path = os.path.join(folder_name, file)
-        data = np.load(file_path)
-        data[label] = data
-    return data
-
-
 class MyDataset(torch.utils.data.Dataset):
-    def __init__(self, data, num_antennas, num_snps):
-        self.data = data
+
+    def __init__(self, folder_path, num_antennas, num_snps, **kwargs):
         self.num_antennas = num_antennas
         self.num_snps = num_snps
+        self.fre_sample = kwargs.get('fre_sample', 51200)
+        self.target_fre = kwargs.get('target_fre', 5666)
+        self.length_window = kwargs.get('length_window', 8192)
+        self.target_fre_width = kwargs.get('target_fre_width', 15)
+        self.is_half_overlapping = kwargs.get('is_half_overlapping', True)
+        self.stride = kwargs.get('stride', 100)
+        self.num_sources = kwargs.get('num_sources', 2)
+        self.folder_path = folder_path
+        self.is_saved = kwargs.get('is_saved', True)
 
-    def split_data(self):
-        data_splited = np.zeros((0, 0))
-        label_splited = np.zeros((0, 0))
-        for key in self.data.keys():
-            data = self.data[key]
-            data_snapshots_generator = GenSnapshot(data, 51200, 5666, 8192, target_fre_width=15, is_half_overlapping=True)
-            data_snapshots = data_snapshots_generator.get_snapshots(num_antennas=self.num_antennas, num_snapshots=self.num_snps)
-            data_splited = np.vstack((data_splited, data_snapshots))
+        self.data, self.label = self.split_data(saved=self.is_saved, path_save=self.folder_path)
 
+    def make_snapshots_data(self, file_path) -> tuple:
+        files = os.listdir(file_path)
+        data_all = np.zeros((0, 0))
+        label_all = np.zeros((0, 0))
+        for idx, file in enumerate(files):
+            label = list(map(int, file.split('.')[0].split('_')))
+            file_path = os.path.join(folder_name, file)
+            data = np.load(file_path)
+            snp_gen = GenSnapshot(data, self.fre_sample, self.target_fre, self.length_window, target_fre_width=self.target_fre_width, is_half_overlapping=self.is_half_overlapping)
+            data_snp = snp_gen.get_snapshots(num_antennas=self.num_antennas, num_snapshots=self.num_snps, stride=self.stride)
+            if idx == 0:
+                data_all = data_snp
+                label = np.array(label).reshape(-1, self.num_sources).repeat(data_snp.shape[0], axis=0)
+                label_all = label
+            else:
+                data_all = np.vstack((data_all, data_snp))
+                label = np.array(label).reshape(-1, self.num_sources).repeat(data_snp.shape[0], axis=0)
+                label_all = np.vstack((label_all, label))
+        return data_all, label_all
+
+    def split_data(self, saved, **kwargs):
+        path_save = kwargs.get('path_save', '../../Data/ULA_0.03/S5666')
+        if not saved:
+            data_, label_ = self.make_snapshots_data(folder_name)
+            # save data to npy file
+            data_save = {
+                'data': data_,
+                'label': label_
+            }
+            np.save(os.path.join(path_save, 'data_snp.npy'), data_save)
+        else:
+            data_save = np.load(os.path.join(path_save, 'data_snp.npy'), allow_pickle=True)
+            data_ = data_save.item().get('data')
+            label_ = data_save.item().get('label')
+        return data_, label_
+
+    def __getitem__(self, index):
+        return self.data[index], self.label[index]
+
+    def __len__(self):
+        return self.data.shape[0]
 
 
 if __name__ == "__main__":
     folder_name = '../../Data/ULA_0.03/S5666'
-    a = read_data(folder_name)
+    mydata = MyDataset(folder_name, 8, 256, is_saved=False, stride=50)
+

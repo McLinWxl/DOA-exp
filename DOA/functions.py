@@ -1,4 +1,6 @@
 import numpy as np
+import scipy.signal
+import heapq
 
 
 class Manifold_dictionary:
@@ -27,3 +29,94 @@ class Manifold_dictionary:
     def cal_manifold(self, num_sensors, sensor_interval, wavelength):
         return np.exp(1j * np.pi * 2 * sensor_interval * np.arange(num_sensors)[:, np.newaxis] * np.sin(
             np.deg2rad(self.theta)) / wavelength)
+
+
+def find_peak(spectrum, num_sources=2, start_bias=60, is_insert=True):
+    numTest, num_mesh, _ = spectrum.shape
+    angles = np.zeros((num_sources, numTest))
+    for num in range(numTest):
+        # li = spectrum[num, :].reshape(-1)
+        if is_insert:
+            angle = Spect2DoA(spectrum[num, :].reshape(1, num_mesh, 1), num_sources=num_sources,
+                              start_bias=start_bias)
+        else:
+            angle = Spect2DoA_no_insert(spectrum[num, :].reshape(1, num_mesh, 1), num_sources=num_sources,
+                                        start_bias=start_bias)
+        angles[:, num] = angle.reshape(-1)
+    return np.sort(angles, axis=0)[::-1]
+
+
+def Spect2DoA(Spectrum, num_sources=2, start_bias=60):
+    """
+    :param Spectrum: (num_samples, num_meshes, 1)
+    :param num_sources:
+    :param height_ignore:
+    :param start_bias:
+    :return: (num_samples, num_sources)
+    """
+    num_samples, num_meshes, _ = Spectrum.shape
+    angles = np.zeros((num_samples, num_sources))
+    for num in range(num_samples):
+        li_0 = Spectrum[num, :].reshape(-1)
+        # li_0[li_0 < 0] = 0
+        li = li_0
+        angle = np.zeros(num_sources) - 5
+        peaks_idx = np.zeros(num_sources)
+        grids_mesh = np.arange(num_meshes) - start_bias
+        peaks, _ = scipy.signal.find_peaks(li)
+        max_spectrum = heapq.nlargest(num_sources, li[peaks])
+        for i in range(len(max_spectrum)):
+            peaks_idx[i] = np.where(li == max_spectrum[i])[0][0]
+            angle[i] = (
+                li[int(peaks_idx[i] + 1)] / (li[int(peaks_idx[i] + 1)]
+                                             + li[int(peaks_idx[i])]) * grids_mesh[int(peaks_idx[i] + 1)]
+                + li[int(peaks_idx[i])] / (li[int(peaks_idx[i] + 1)]
+                                           + li[int(peaks_idx[i])]) * grids_mesh[int(peaks_idx[i])]
+                if li[int(peaks_idx[i] - 1)] < li[int(peaks_idx[i] + 1)]
+                else li[int(peaks_idx[i] - 1)] / (li[int(peaks_idx[i] - 1)]
+                                                  + li[int(peaks_idx[i])]) * grids_mesh[int(peaks_idx[i] - 1)]
+                     + li[int(peaks_idx[i])] / (li[int(peaks_idx[i] - 1)]
+                                                + li[int(peaks_idx[i])]) * grids_mesh[int(peaks_idx[i])]
+            )
+        angles[num] = angle.reshape(-1)
+    return np.sort(angles, axis=1)[::-1]
+
+
+def Spect2DoA_no_insert(Spectrum, num_sources=2, start_bias=60):
+    """
+    :param Spectrum: (num_samples, num_meshes, 1)
+    :param num_sources:
+    :param height_ignore:
+    :param start_bias:
+    :return: (num_samples, num_sources)
+    """
+    num_samples, num_meshes, _ = Spectrum.shape
+    angles = np.zeros((num_samples, num_sources))
+    grids_mesh = np.arange(num_meshes) - start_bias
+    for num in range(num_samples):
+        li_0 = Spectrum[num, :].reshape(-1)
+        # li_0[li_0 < 0] = 0
+        li = li_0
+        angle = np.zeros(num_sources) - 5
+        peaks, _ = scipy.signal.find_peaks(li)
+        max_spectrum = heapq.nlargest(num_sources, li[peaks])
+        for i in range(len(max_spectrum)):
+            angle[i] = grids_mesh[np.where(li == max_spectrum[i])[0][0]]
+        angles[num] = angle.reshape(-1)
+    return np.sort(angles, axis=1)[::-1]
+
+
+def DoA2Spect(DoA, num_meshes=121, num_sources=2, start_bias=60):
+    """
+    :param DoA: (num_samples, num_sources)
+    :param num_meshes:
+    :param num_sources:
+    :param start_bias:
+    :return: (num_samples, num_meshes, 1)
+    """
+    num_samples, _ = DoA.shape
+    spectrum = np.zeros((num_samples, num_meshes, 1))
+    for num in range(num_samples):
+        for i in range(num_sources):
+            spectrum[num, int(DoA[num, i] + start_bias)] = 1
+    return spectrum
