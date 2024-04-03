@@ -16,11 +16,15 @@ from DOA.utils.model import AMI_LISTA, MUSIC, MVDR, SBL, ISTA
 from DOA.functions import Manifold_dictionary, find_peak, DoA2Spect
 from matplotlib import pyplot as plt
 
+# Set seeds
+torch.manual_seed(3407)
+np.random.seed(3407)
+
 configs = {
     'name': 'AMI',
     'num_antennas': 8,
     'num_snps': 256,
-    'num_epochs': 150,
+    'num_epochs': 1350,
     'batch_size': 32,
     'num_sources': 2,
     'stride': 100,
@@ -39,7 +43,6 @@ mydata = MyDataset(folder_path=folded_path, num_antennas=configs['num_antennas']
 train_set, test_set = torch.utils.data.random_split(mydata, [int(0.5*len(mydata)), len(mydata)-int(0.5*len(mydata))])
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=configs['batch_size'], shuffle=True, drop_last=True)
 
-
 model_path = '../../Test/AMI-LF10.pth'
 
 model = AMI_LISTA(dictionary=dictionary)
@@ -48,9 +51,10 @@ model.load_state_dict(state_dict['model'])
 num_samples = len(train_loader)
 output_DOA, label_DOA = np.zeros((num_samples, 2)), np.zeros((num_samples, 2))
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
 loss = torch.nn.MSELoss()
 
+best_loss = 100
 for epoch in range(configs['num_epochs']+1):
     for idx, (data, label) in enumerate(train_loader):
         mse_loss = 0
@@ -74,8 +78,10 @@ for epoch in range(configs['num_epochs']+1):
         optimizer.step()
         train_loss += mse_loss.item()
     print(f"Epoch: {epoch}, Loss: {train_loss/len(train_loader)}")
-    if epoch <= 30 or epoch % 10 == 0:
-        torch.save({'model': model.state_dict()}, f"{configs['model_path']}/AMI_FT_{epoch}.pth")
+
+    if train_loss < best_loss:
+        torch.save({'model': model.state_dict()}, f"{configs['model_path']}/AMI_FT_best.pth")
+        best_loss = train_loss
 
 
 

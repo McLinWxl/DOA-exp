@@ -16,7 +16,7 @@ model_name = 'AMI'
 label = [-5, 0]
 num_antennas = 8
 num_snps = 256
-data = np.load('ULA_0.03/S5666/-5_0.npy')
+data = np.load('ULA_0.03/S5666/-15_15.npy')
 data_snapshots_generator = GenSnapshot(data, 51200, 5666, 8192, target_fre_width=15, is_half_overlapping=True)
 data_snapshots = data_snapshots_generator.get_snapshots(num_antennas=num_antennas, num_snapshots=num_snps, stride=20)
 covariance_matrix = np.matmul(data_snapshots, data_snapshots.conj().transpose(0, 2, 1)) / data_snapshots.shape[2]
@@ -27,8 +27,8 @@ covariance_matrix_denoised = denoise_covariance(covariance_matrix, num_sources=2
 cal_manifold = Manifold_dictionary(num_sensors=num_antennas, sensor_interval=0.03, wavelength=0.06, num_meshes=len(meshes), theta=meshes)
 dictionary = cal_manifold.cal_dictionary()
 length_sample = covariance_matrix.shape[0]
-covariance_matrix_sample = covariance_matrix[0]
-data_snapshots_sample = data_snapshots[0]
+covariance_matrix_sample = covariance_matrix[6]
+data_snapshots_sample = data_snapshots[6]
 
 sample_length = data_snapshots.shape[0]
 
@@ -59,7 +59,7 @@ for i in range(sample_length):
             plt.title('ISTA Spectrum')
             output_matrix[i] = spect.reshape(-1)
         case 'AMI':
-            model_path = '../Test/AMI_FT_20.pth'
+            model_path = '../Test/AMI_FT_040201.pth'
             dictionary_torch = torch.from_numpy(dictionary).to(torch.complex64)
             covariance_vector_torch = torch.from_numpy(covariance_vector_denoised).to(torch.complex64)
             AMI = model.AMI_LISTA(dictionary=dictionary_torch)
@@ -112,7 +112,7 @@ plt.axvline(x=label[0], color='r', linestyle='--')
 plt.axvline(x=label[1], color='r', linestyle='--')
 plt.matshow(output_matrix)
 plt.show()
-
+#
 # plt.style.use(['science', 'ieee', 'grid'])
 # match model_name:
 #     case 'MUSIC':
@@ -128,7 +128,7 @@ plt.show()
 #         spect = model.ISTA(covariance_array=covariance_vector_sample, dictionary=dictionary, angle_meshes=meshes, max_iter=1500, tol=1e-6)
 #         plt.title('ISTA Spectrum')
 #     case 'AMI':
-#         model_path = '../Test/AMI-LF10.pth'
+#         model_path = '../Test/AMI_FT_040201.pth'
 #         dictionary = torch.from_numpy(dictionary).to(torch.complex64)
 #         covariance_vector_sample = torch.from_numpy(covariance_vector_sample).to(torch.complex64).reshape(1, -1)
 #         AMI = model.AMI_LISTA(dictionary=dictionary)

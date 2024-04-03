@@ -27,8 +27,8 @@ configs = {
 }
 
 cal_manifold = Manifold_dictionary(num_sensors=configs['num_antennas'], sensor_interval=0.03, wavelength=0.06, num_meshes=len(configs['mesh']), theta=configs['mesh'])
-dictionary = cal_manifold.cal_dictionary()
-dictionary = torch.from_numpy(dictionary).to(torch.complex64)
+dictionary_np = cal_manifold.cal_dictionary()
+dictionary = torch.from_numpy(dictionary_np).to(torch.complex64)
 
 folded_path = 'ULA_0.03/S5666'
 abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'Data', folded_path))
@@ -37,7 +37,7 @@ mydata = MyDataset(folder_path=abs_path, num_antennas=configs['num_antennas'], n
 test_loader = torch.utils.data.DataLoader(mydata, batch_size=configs['batch_size'], shuffle=False)
 
 # model_path = './AMI-LF10.pth'
-model_path = './AMI_FT_70.pth'
+model_path = './AMI_FT_040201.pth'
 abs_model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'Test', model_path))
 
 model = AMI_LISTA(dictionary=dictionary)
@@ -80,10 +80,9 @@ for idx, (data, label) in enumerate(test_loader):
         case 'ISTA':
             covariance_matrix = denoise_covariance(covariance_matrix, num_sources=configs['num_sources'])
             covariance_vector = covariance_matrix.transpose(0, 2, 1).reshape(-1, configs['num_antennas']**2, 1)
-            covariance_vector = torch.from_numpy(covariance_vector).to(torch.complex64)
             output_detached = np.zeros((configs['batch_size'], len(configs['mesh']), 1))
             for i in range(configs['batch_size']):
-                output = ISTA(covariance_vector[i], dictionary, angle_meshes=configs['mesh'], max_iter=1500, tol=1e-6)
+                output = ISTA(covariance_vector[i], dictionary_np, angle_meshes=configs['mesh'], max_iter=500, tol=1e-6)
                 output_detached[i] = output
     out_peak = find_peak(output_detached, num_sources=2, start_bias=60, is_insert=True)
     output_DOA[idx] = out_peak.reshape(-1)
