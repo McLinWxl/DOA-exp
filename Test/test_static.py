@@ -30,7 +30,7 @@ cal_manifold = Manifold_dictionary(num_sensors=configs['num_antennas'], sensor_i
 dictionary_np = cal_manifold.cal_dictionary()
 dictionary = torch.from_numpy(dictionary_np).to(torch.complex64)
 
-folded_path = 'ULA_0.03/S5666'
+folded_path = 'ULA_0.03/I2535'
 abs_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'Data', folded_path))
 
 mydata = MyDataset(folder_path=abs_path, num_antennas=configs['num_antennas'], num_snps=configs['num_snps'], stride=configs['stride'])
@@ -52,7 +52,6 @@ for idx, (data, label) in enumerate(test_loader):
     covariance_matrix = torch.matmul(data, data.transpose(1, 2).conj())
     match configs['name']:
         case 'AMI':
-
             covariance_matrix = denoise_covariance(covariance_matrix, num_sources=configs['num_sources'])
             covariance_vector = covariance_matrix.transpose(0, 2, 1).reshape(-1, configs['num_antennas']**2, 1)
             covariance_vector = torch.from_numpy(covariance_vector).to(torch.complex64)

@@ -34,12 +34,22 @@ class MyDataset(torch.utils.data.Dataset):
         files = os.listdir(file_path)
         data_all = np.zeros((0, 0))
         label_all = np.zeros((0, 0))
+        identity = file_path.split('/')[-1]
         for idx, file in enumerate(files):
-            label = list(map(int, file.split('.')[0].split('_')))
+            # DEBUG
+            if identity in ['Complete', 'Inner', 'Outer', 'Ball', 'I2535']:
+                label = [file.split('.')[0].split('_')[1], file.split('.')[0].split('_')[3]]
+                label = list(map(int, label))
+            elif identity == 'S5666':
+                label = list(map(int, file.split('.')[0].split('_')))
+            else:
+                raise ValueError('The file name is not correct!')
             file_path = os.path.join(folder_name, file)
             data = np.load(file_path)
-            snp_gen = GenSnapshot(data, self.fre_sample, self.target_fre, self.length_window, target_fre_width=self.target_fre_width, is_half_overlapping=self.is_half_overlapping)
-            data_snp = snp_gen.get_snapshots(num_antennas=self.num_antennas, num_snapshots=self.num_snps, stride=self.stride)
+            snp_gen = GenSnapshot(data, self.fre_sample, self.target_fre, self.length_window,
+                                  target_fre_width=self.target_fre_width, is_half_overlapping=self.is_half_overlapping)
+            data_snp = snp_gen.get_snapshots(num_antennas=self.num_antennas, num_snapshots=self.num_snps,
+                                             stride=self.stride)
             if idx == 0:
                 data_all = data_snp
                 label = np.array(label).reshape(-1, self.num_sources).repeat(data_snp.shape[0], axis=0)
@@ -48,6 +58,8 @@ class MyDataset(torch.utils.data.Dataset):
                 data_all = np.vstack((data_all, data_snp))
                 label = np.array(label).reshape(-1, self.num_sources).repeat(data_snp.shape[0], axis=0)
                 label_all = np.vstack((label_all, label))
+            # release memory
+            del data, data_snp
         return data_all, label_all
 
     def split_data(self, saved, **kwargs):
@@ -74,6 +86,5 @@ class MyDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    folder_name = '../../Data/ULA_0.03/S5666'
-    mydata = MyDataset(folder_name, 8, 256, is_saved=False, stride=50)
-
+    folder_name = '../../Data/ULA_0.03/I2535'
+    mydata = MyDataset(folder_name, 8, 256, is_saved=False, stride=128)
