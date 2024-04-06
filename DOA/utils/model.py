@@ -7,7 +7,7 @@
 import numpy as np
 import torch
 
-def MUSIC(CovarianceMatrix: np.ndarray, num_antennas: int, num_sources: int, angle_meshes: np.ndarray) -> np.ndarray:
+def MUSIC(CovarianceMatrix: np.ndarray, num_antennas: int, num_sources: int, angle_meshes: np.ndarray, antenna_intarvals: float, wavelength_source: float) -> np.ndarray:
     """
     Multi-Signal Classification (MUSIC) algorithm
     :param CovarianceMatrix:
@@ -22,8 +22,8 @@ def MUSIC(CovarianceMatrix: np.ndarray, num_antennas: int, num_sources: int, ang
     doa_search = angle_meshes
     p_music = np.zeros((len(doa_search), 1))
     for doa_index in range(len(doa_search)):
-        a = np.exp(
-            1j * np.pi * np.arange(num_antennas)[:, np.newaxis] * np.sin(np.deg2rad(doa_search[doa_index])))
+        a = np.exp(1j * np.pi * 2 * antenna_intarvals * np.arange(num_antennas)[:, np.newaxis] * np.sin(
+            np.deg2rad(doa_search[doa_index])) / wavelength_source)
         p_music[doa_index] = np.abs(1 / np.matmul(np.matmul(np.matrix.getH(a), noise_subspace), a).reshape(-1)[0])
     p_music = p_music / np.max(p_music)
     p_music = 10 * np.log10(p_music)
@@ -47,7 +47,7 @@ def MVDR(CovarianceMatrix: np.ndarray, num_antennas: int, angle_meshes: np.ndarr
     return (sigma - np.min(sigma)) / (np.max(sigma) - np.min(sigma))
 
 
-def SBL(raw_data, num_antennas: int, angle_meshes: np.ndarray, max_iteration=500, error_threshold=1e-3):
+def SBL(raw_data, num_antennas: int, angle_meshes: np.ndarray, max_iteration=100, error_threshold=1e-3):
     """
     :param angle_meshes:
     :param num_antennas:
@@ -83,7 +83,7 @@ def SBL(raw_data, num_antennas: int, angle_meshes: np.ndarray, max_iteration=500
     return gamma
 
 
-def ISTA(covariance_array, dictionary, angle_meshes: np.ndarray, max_iter=500, tol=1e-6):
+def ISTA(covariance_array, dictionary, angle_meshes: np.ndarray, max_iter=100, tol=1e-6):
     """
     :param dictionary:
     :param angle_meshes:

@@ -11,14 +11,31 @@ from DOA.utils import model
 from DOA.functions import Manifold_dictionary
 import matplotlib.pyplot as plt
 import torch
+import seaborn as sns
+import pandas as pd
+from rich.progress import track
+import time
 
-model_name = 'AMI'
-label = [-5, 0]
-num_antennas = 8
-num_snps = 256
-data = np.load('ULA_0.03/S5666/-15_15.npy')
+configs = {
+    'name': 'MUSIC',
+    'is_fine_tune': True, # True, False
+    'num_antennas': 8,
+    'num_snps': 256,
+    'data_path': 'ULA_0.03/S5666/-20_10.npy',
+
+    'sample_frequency': 51200,
+    'target_frequency': 5666,
+    'length_window': 8192,
+    'target_fre_width': 10,
+    'stride': 10,
+
+    'mesh': np.linspace(-60, 60, 121),
+
+}
+
+data = np.load(f'../Data/{configs["data_path"]}')
 data_snapshots_generator = GenSnapshot(data, 51200, 5666, 8192, target_fre_width=15, is_half_overlapping=True)
-data_snapshots = data_snapshots_generator.get_snapshots(num_antennas=num_antennas, num_snapshots=num_snps, stride=20)
+data_snapshots = data_snapshots_generator.get_snapshots(num_antennas=num_antennas, num_snapshots=num_snps, stride=10)
 covariance_matrix = np.matmul(data_snapshots, data_snapshots.conj().transpose(0, 2, 1)) / data_snapshots.shape[2]
 meshes = np.linspace(-60, 60, 121)
 
@@ -39,27 +56,32 @@ covariance_vector_sample = covariance_matrix_sample.transpose(1, 0).reshape(num_
 covariance_vector_denoised = covariance_matrix_denoised.transpose(0, 2, 1).reshape(length_sample, num_antennas**2, 1)
 
 plt.style.use(['science', 'ieee', 'grid'])
-for i in range(sample_length):
+# start time
+start = time.time()
+for i in track(range(sample_length)):
     match model_name:
         case 'MUSIC':
             spect = model.MUSIC(covariance_matrix[i], num_antennas=num_antennas, num_sources=2, angle_meshes=meshes)
             plt.title('MUSIC Spectrum')
-            plt.plot(meshes, spect)
+            # plt.plot(meshes, spect)
             output_matrix[i] = spect.reshape(-1)
         case 'MVDR':
             spect = model.MVDR(covariance_matrix[i], num_antennas=num_antennas, angle_meshes=meshes)
             plt.title('MVDR Spectrum')
             output_matrix[i] = spect.reshape(-1)
         case 'SBL':
-            spect = model.SBL(raw_data=data_snapshots[i], num_antennas=num_antennas, angle_meshes=meshes, max_iteration=1500, error_threshold=1e-3)
+            spect = model.SBL(raw_data=data_snapshots[i], num_antennas=num_antennas, angle_meshes=meshes, max_iteration=100, error_threshold=1e-6)
             plt.title('SBL Spectrum')
             output_matrix[i] = spect.reshape(-1)
         case 'ISTA':
-            spect = model.ISTA(covariance_array=covariance_vector_denoised[i], dictionary=dictionary, angle_meshes=meshes, max_iter=1500, tol=1e-6)
+            spect = model.ISTA(covariance_array=covariance_vector_denoised[i], dictionary=dictionary, angle_meshes=meshes, max_iter=100, tol=1e-6)
             plt.title('ISTA Spectrum')
             output_matrix[i] = spect.reshape(-1)
         case 'AMI':
-            model_path = '../Test/AMI_FT_040201.pth'
+            if is_fine_tuned:
+                model_path = '../Test/AMI_FT_040201.pth'
+            else:
+                model_path = '../Test/AMI-LF10.pth'
             dictionary_torch = torch.from_numpy(dictionary).to(torch.complex64)
             covariance_vector_torch = torch.from_numpy(covariance_vector_denoised).to(torch.complex64)
             AMI = model.AMI_LISTA(dictionary=dictionary_torch)
@@ -107,11 +129,27 @@ for i in range(sample_length):
             spect = out.detach().numpy().reshape(-1)
             plt.title('LISTA-AM Spectrum')
             output_matrix[i] = spect.reshape(-1)
-
-plt.axvline(x=label[0], color='r', linestyle='--')
-plt.axvline(x=label[1], color='r', linestyle='--')
-plt.matshow(output_matrix)
+# end time
+end = time.time()
+time_cost = end - start
+time_per_sample = time_cost / sample_length
+print(f"Time cost: {time_cost}, Time per sample: {time_per_sample}")
+# plt.axvline(x=label[0], color='r', linestyle='--')
+# plt.axvline(x=label[1], color='r', linestyle='--')
+# plt.matshow(output_matrix)
+# plt.show()
+plt.style.use(['science', 'ieee', 'grid'])
+sns_dataFrame = pd.DataFrame(output_matrix.T, columns=[i for i in range(sample_length)], index=[i-60 for i in range(len(meshes))])
+ax = sns.heatmap(sns_dataFrame, xticklabels=50, yticklabels=20, cmap='YlGnBu')
+ax.tick_params(axis='both', which='both', direction='out', length=1, width=0.5)
+sns.despine(top=False, right=False)
+plt.xlabel('Samples')
+plt.ylabel('Angle Meshes')
+# plt.title(f'{model_name} Spectrum')
+plt.grid(which='both', axis='both', linestyle='-', linewidth=0.1)
+plt.savefig(f'../DOA/Figures/{model_name}_sample_spectrum.pdf')
 plt.show()
+
 #
 # plt.style.use(['science', 'ieee', 'grid'])
 # match model_name:

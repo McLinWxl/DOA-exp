@@ -86,5 +86,5 @@ class MyDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    folder_name = '../../Data/ULA_0.03/I2535'
+    folder_name = '../../Data/ULA_0.03/S5666'
     mydata = MyDataset(folder_name, 8, 256, is_saved=False, stride=128)
