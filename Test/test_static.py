@@ -14,13 +14,13 @@ from DOA.utils.dataset import MyDataset
 from DataProcess.functions import denoise_covariance
 import torch
 import numpy as np
-from DOA.utils.model import AMI_LISTA, MUSIC, MVDR, SBL, ISTA
+from DOA.utils.model import AMI_LISTA, MUSIC, MVDR, SBL, ISTA, DCNN
 from DOA.functions import Manifold_dictionary, find_peak
 from matplotlib import pyplot as plt
 from rich.progress import track
 
 configs = {
-    'name': 'ISTA',
+    'name': 'MVDR',
     'is_fine_tune': True, # True, False
     'num_antennas': 8,
     'num_snps': 256,

@@ -6,6 +6,7 @@
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 def MUSIC(CovarianceMatrix: np.ndarray, num_antennas: int, num_sources: int, angle_meshes: np.ndarray, antenna_intarvals: float, wavelength_source: float) -> np.ndarray:
     """
@@ -30,7 +31,7 @@ def MUSIC(CovarianceMatrix: np.ndarray, num_antennas: int, num_sources: int, ang
     return p_music - np.min(p_music)
 
 
-def MVDR(CovarianceMatrix: np.ndarray, num_antennas: int, angle_meshes: np.ndarray):
+def MVDR(CovarianceMatrix: np.ndarray, num_antennas: int, angle_meshes: np.ndarray, antenna_intarvals: float, wavelength_source: float) -> np.ndarray:
     """
     Minimum Variance Distortionless Response (MVDR) algorithm
     :param CovarianceMatrix:
@@ -40,14 +41,16 @@ def MVDR(CovarianceMatrix: np.ndarray, num_antennas: int, angle_meshes: np.ndarr
     """
     sigma = []
     for i in range(len(angle_meshes)):
-        a = np.exp(1j * np.pi * np.arange(num_antennas)[:, np.newaxis] * np.sin(np.deg2rad(angle_meshes[i])))
+        # a = np.exp(1j * np.pi * np.arange(num_antennas)[:, np.newaxis] * np.sin(np.deg2rad(angle_meshes[i])))
+        a = np.exp(1j * np.pi * 2 * antenna_intarvals * np.arange(num_antennas)[:, np.newaxis] * np.sin(
+            np.deg2rad(angle_meshes[i])) / wavelength_source)
         sigma.append(1 / ((a.conj().T @ np.linalg.pinv(CovarianceMatrix) @ a) + 1e-20))
     sigma = np.array(sigma).reshape([-1, 1])
     sigma = np.abs(sigma)
     return (sigma - np.min(sigma)) / (np.max(sigma) - np.min(sigma))
 
 
-def SBL(raw_data, num_antennas: int, angle_meshes: np.ndarray, max_iteration=100, error_threshold=1e-3):
+def SBL(raw_data, num_antennas: int, angle_meshes: np.ndarray, antenna_intervals: float, wavelength: float, max_iteration=100, error_threshold=1e-3):
     """
     :param angle_meshes:
     :param num_antennas:
@@ -57,7 +60,9 @@ def SBL(raw_data, num_antennas: int, angle_meshes: np.ndarray, max_iteration=100
     :return:
     """
     _, num_snapshots = raw_data.shape
-    A = np.exp(1j * np.pi * np.arange(num_antennas)[:, np.newaxis] * np.sin(np.deg2rad(angle_meshes)))
+    # A = np.exp(1j * np.pi * np.arange(num_antennas)[:, np.newaxis] * np.sin(np.deg2rad(angle_meshes)))
+    A = np.exp(1j * np.pi * 2 * antenna_intervals * np.arange(num_antennas)[:, np.newaxis] * np.sin(
+        np.deg2rad(angle_meshes)) / wavelength)
     mu = A.T.conjugate() @ np.linalg.pinv(A @ A.T.conjugate()) @ raw_data
     sigma2 = 0.1 * np.linalg.norm(raw_data, 'fro') ** 2 / (num_antennas * num_snapshots)
     gamma = np.diag((mu @ mu.T.conjugate()).real) / num_snapshots
@@ -239,3 +244,29 @@ class LISTA(torch.nn.Module):
             x_eta = x_eta / (torch.sqrt(torch.tensor(2.)) * (x_norm + 1e-20))
             x_layers_virtual[:, t] = x_eta
         return x_eta, x_layers_virtual
+
+
+class DCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv1d(2, 12, kernel_size=25, padding='same')
+        self.conv2 = nn.Conv1d(12, 6, kernel_size=15, padding='same')
+        self.conv3 = nn.Conv1d(6, 3, kernel_size=5, padding='same')
+        self.conv4 = nn.Conv1d(3, 1, kernel_size=3, padding='same')
+        self.bn1 = nn.BatchNorm1d(12)
+        self.bn2 = nn.BatchNorm1d(6)
+        self.bn3 = nn.BatchNorm1d(3)
+        # self.bn4 = nn.BatchNorm1d(1)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = x.transpose(1, 2)
+        x = x.to(torch.float32)
+        conv1 = self.relu(self.conv1(x))
+        conv1 = self.bn1(conv1)
+        conv2 = self.relu(self.conv2(conv1))
+        conv2 = self.bn2(conv2)
+        conv3 = self.relu(self.conv3(conv2))
+        conv3 = self.bn3(conv3)
+        conv4 = self.relu(self.conv4(conv3))
+        return conv4.transpose(1, 2)

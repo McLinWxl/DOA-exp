@@ -21,7 +21,7 @@ class MyDataset(torch.utils.data.Dataset):
         self.fre_sample = kwargs.get('fre_sample', 51200)
         self.target_fre = kwargs.get('target_fre', 5666)
         self.length_window = kwargs.get('length_window', 8192)
-        self.target_fre_width = kwargs.get('target_fre_width', 15)
+        self.target_fre_width = kwargs.get('target_fre_width', 0)
         self.is_half_overlapping = kwargs.get('is_half_overlapping', True)
         self.stride = kwargs.get('stride', 100)
         self.num_sources = kwargs.get('num_sources', 2)
@@ -71,7 +71,7 @@ class MyDataset(torch.utils.data.Dataset):
                 'data': data_,
                 'label': label_
             }
-            np.save(os.path.join(path_save, 'data_snp.npy'), data_save)
+            np.save(os.path.join(path_save, 'data_snp_4372.npy'), data_save)
         else:
             data_save = np.load(os.path.join(path_save, 'data_snp.npy'), allow_pickle=True)
             data_ = data_save.item().get('data')
@@ -86,5 +86,10 @@ class MyDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    folder_name = '../../Data/ULA_0.03/S5666'
-    mydata = MyDataset(folder_name, 8, 256, is_saved=False, stride=128)
+    folder_name = '../../Data/ULA_0.03/Complete'
+    mydata = MyDataset(folder_name,
+                       num_antennas=8,
+                       num_snps=256,
+                       target_fre=4372,
+                       is_saved=False,
+                       stride=128)

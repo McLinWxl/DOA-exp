@@ -56,14 +56,19 @@ class GenSnapshot:
                         fft = np.fft.fft(self.data[j, i * stride:i * stride + self.length_window])
                         # if i == 0:
                         #     plt.style.use(['science', 'ieee', 'grid'])
-                        #     plt.plot(fft[0:4000])
+                        #     length_fft = fft.shape[0]
+                        #     x_label = np.arange(0, length_fft) * 51200 / 8192
+                        #     plt.plot(x_label[20:length_fft//4], fft[20:length_fft//4])
                         #     plt.xlabel('Frequency')
                         #     plt.ylabel('Amplitude')
                         #     plt.savefig(f"../Test/fft.pdf")
                         #     plt.show()
                         target_frequency_dft = self.target_frequency * self.length_window // self.sample_frequency + 1
-                        highest_idx = np.argmax(np.abs(fft[target_frequency_dft - self.target_fre_width:target_frequency_dft + self.target_fre_width]))
-                        data_snapshots[j, i] = fft[target_frequency_dft - self.target_fre_width + highest_idx]
+                        if self.target_fre_width == 0:
+                            data_snapshots[j, i] = fft[target_frequency_dft]
+                        else:
+                            highest_idx = np.argmax((fft[target_frequency_dft - self.target_fre_width:target_frequency_dft + self.target_fre_width]))
+                            data_snapshots[j, i] = fft[target_frequency_dft - self.target_fre_width + highest_idx]
             case False:
                 num_snapshots = length_signal // self.length_window
                 stride = self.length_window
@@ -72,10 +77,11 @@ class GenSnapshot:
                     for j in range(num_antennas):
                         fft = np.fft.fft(self.data[j, i * stride:i * stride + self.length_window])
                         target_frequency_dft = self.target_frequency * self.length_window // self.sample_frequency + 1
-                        highest_idx = np.argmax(np.abs(fft[target_frequency_dft - self.target_fre_width:target_frequency_dft + self.target_fre_width]))
+                        highest_idx = np.argmax((fft[target_frequency_dft - self.target_fre_width:target_frequency_dft + self.target_fre_width]))
                         data_snapshots[j, i] = fft[target_frequency_dft - self.target_fre_width + highest_idx]
             case _:
                 raise ValueError("is_half_overlapping should be either True or False")
+        a = norm_(data_snapshots)
         return norm_(data_snapshots)
 
 

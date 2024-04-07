@@ -38,8 +38,8 @@ def load_data(file_path, remove_start=0, remove_end=0) -> np.ndarray:
 if __name__ == "__main__":
     f_s = 51200
     # time =
-    f_path = "../../../328Data/test_20240329_140658-RealData/2024-03-29 14-06-59.tdms"
+    f_path = "../../../328Data/test_20240329_114622-RealData/2024-03-29 11-46-22.tdms"
     data = load_data(f_path)
     # save data to npy file
-    np.save("./ULA_0.03/S5666/-20_10.npy", data)
+    np.save("./ULA_0.03/S2800/-20_20.npy", data)
 
