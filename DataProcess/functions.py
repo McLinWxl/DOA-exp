@@ -61,7 +61,13 @@ class GenSnapshot:
                         #     plt.plot(x_label[20:length_fft//4], fft[20:length_fft//4])
                         #     plt.xlabel('Frequency')
                         #     plt.ylabel('Amplitude')
-                        #     plt.savefig(f"../Test/fft.pdf")
+                        #     plt.savefig(f"/Volumes/WangXinLin/GitLibrary/DOA-exp/Test/Figures/fft{j}.pdf")
+                        #     plt.show()
+                        #
+                        #     plt.plot(self.data[j])
+                        #     plt.xlabel('Sample')
+                        #     plt.ylabel('Amplitude')
+                        #     plt.savefig(f"/Volumes/WangXinLin/GitLibrary/DOA-exp/Test/Figures/data{j}.pdf")
                         #     plt.show()
                         target_frequency_dft = self.target_frequency * self.length_window // self.sample_frequency + 1
                         if self.target_fre_width == 0:
@@ -90,7 +96,7 @@ def denoise_covariance(covariance_matrix, num_sources):
     Minus the noise variance (estimated by the smallest eigenvalue) from the covariance matrix.
     :param covariance_matrix:
     :param num_sources:
-    :return: Denoised covariance vector
+    :return: Denoised covariance matrix
     """
     nums, M, M = covariance_matrix.shape
     covariance_matrix_clean = np.zeros((nums, M, M)) + 1j * np.zeros((nums, M, M))

@@ -62,6 +62,7 @@ class MyDataset(torch.utils.data.Dataset):
             del data, data_snp
         return data_all, label_all
 
+
     def split_data(self, saved, **kwargs):
         path_save = kwargs.get('path_save', '../../Data/ULA_0.03/S5666')
         if not saved:
@@ -86,10 +87,10 @@ class MyDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    folder_name = '../../Data/ULA_0.03/Complete'
+    folder_name = '../../Data/ULA_0.03/S5666'
     mydata = MyDataset(folder_name,
                        num_antennas=8,
                        num_snps=256,
-                       target_fre=4372,
+                       target_fre=5666,
                        is_saved=False,
                        stride=128)

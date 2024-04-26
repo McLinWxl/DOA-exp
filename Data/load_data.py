@@ -23,14 +23,14 @@ def load_data(file_path, remove_start=0, remove_end=0) -> np.ndarray:
                 data = channel[:]
                 if idx == 0:
                     data_all = data
-                    plt.style.use(['science', 'ieee', 'grid'])
-                    plt.plot(data, linewidth=0.5)
-                    plt.xlabel('Sample')
-                    plt.ylabel('Amplitude')
-                    plt.savefig(f"../Test/spect.pdf")
-                    plt.show()
                 else:
                     data_all = np.vstack((data_all, data))
+                # plt.style.use(['science', 'ieee', 'grid'])
+                # plt.plot(data, linewidth=0.5)
+                # plt.xlabel('Sample')
+                # plt.ylabel('Amplitude')
+                # # plt.savefig(f"../Test/spect.pdf")
+                # plt.show()
     print(f"Data shape: {data_all.shape}")
     return data_all
 
@@ -38,7 +38,7 @@ def load_data(file_path, remove_start=0, remove_end=0) -> np.ndarray:
 if __name__ == "__main__":
     f_s = 51200
     # time =
-    f_path = "../../../328Data/test_20240329_114622-RealData/2024-03-29 11-46-22.tdms"
+    f_path = "../../../328Data/test_20240329_115633-RealData/2024-03-29 11-56-33.tdms"
     data = load_data(f_path)
     # save data to npy file
     np.save("./ULA_0.03/S2800/-20_20.npy", data)

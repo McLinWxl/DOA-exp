@@ -20,14 +20,14 @@ import time
 current_time = time.strftime('%m%d%H%M%S', time.localtime())
 
 configs = {
-    'name': 'AMI',
+    'name': 'ISTA',
     'is_fine_tune': False,
     'num_antennas': 8,
     'num_snps': 200,
-    'data_path': 'ULA_0.03/S2800/-5_5.npy',
+    'data_path': 'ULA_0.03/S5666/-5_0.npy',
 
     'sample_frequency': 51200,
-    'target_frequency': 2800,
+    'target_frequency': 5666,
     'length_window': 8192,
     'target_fre_width': 0,
     'stride': 10,
@@ -231,7 +231,10 @@ match configs['name']:
         AMI.eval()
         out, out_layers = AMI(covariance_vector_sample)
         spect = out.detach().numpy().reshape(-1)
-        plt.title('AMI Spectrum')
+        if configs['is_fine_tune']:
+            plt.title('AMI-LISTA(Fine-tuned) Spectrum')
+        else:
+            plt.title('AMI-LISTA Spectrum')
     case 'LISTA':
         model_path = '../Test/LISTA-10.pth'
         dictionary = torch.from_numpy(dictionary).to(torch.complex64)
